@@ -1,24 +1,37 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import './App.css';
 import PostList from './components/PostList';
 import PostForm from './components/PostForm';
-import MySelect from './components/UI/select/MySelect';
+import PostFilter from './components/PostFilter';
+import MyModal from './components/UI/modals/MyModal';
+import MyButton from './components/UI/buttons/MyButton';
 
 function App() {
   const [posts, setPosts] = useState([
-    {id: 1, title: 'JavaScript', body: 'Description'},
+    {id: 1, title: 'JavaScript', body: 'This is a post about JS'},
     {id: 2, title: 'JavaScript 2', body: 'Description'}
   ])
 
-  const [selectedSort, setSelectedSort] = useState('');
+  const [filter, setFilter] = useState({sort: '', query: ''});
+  const [modal, setModal] = useState(false);
 
-  const sortPosts = (sort) => {
-    setSelectedSort(sort);
-    setPosts([...posts].sort((a, b) => a[sort].localeCompare(b[sort])))
-  }
+
+  const sortedPosts = useMemo(() => {
+    
+    if(filter.sort) {
+      return [...posts].sort((a, b) => a[filter.sort].localeCompare(b[filter.sort]));
+    }
+    return posts;
+  }, [filter.sort, posts]);
+
+  const sortedAndSearchedPosts = useMemo(() => {
+    return sortedPosts.filter(post => post.title.toLowerCase().includes(filter.query))
+  }, [filter.query, sortedPosts])
+
 
   const createPost = (newPost) => {
-    setPosts([...posts, newPost])
+    setPosts([...posts, newPost]);
+    setModal(false)
   }
 
   const removePost = (post) => {
@@ -27,24 +40,19 @@ function App() {
 
   return (
     <div className="App">
-      <PostForm create = {createPost}/>
-      <div>
-        <hr style={{margin: '15px 0'}}/>
-        <MySelect
-          value={selectedSort}
-          onChange={sort => sortPosts(sort)}
-          defaultValue='Сортировка'
-          option = {[
-            {value: 'title', name: 'По названию'},
-            {value: 'body', name: 'По описанию'}
-          ]}
-        />
-      </div>
-      {posts.length
-        ? <PostList remove = {removePost} posts={posts} title={'Список постов'}/>
-        : <h1 style = {{textAlign: 'center'}}>Посты не найдены</h1>
-      }
+      <MyButton style = {{marginTop: 30}} onClick = {() => setModal(true)}>
+        Create post
+      </MyButton>
+      <MyModal visible={modal} setVisible={setModal}>
+        <PostForm create = {createPost}/>
+      </MyModal>
       
+      <hr style={{margin: '15px 0'}}/>
+      <PostFilter 
+        filter = {filter} 
+        setFilter={setFilter}
+      />
+      <PostList remove = {removePost} posts={sortedAndSearchedPosts} title={'Список постов'}/>
     </div>
   );
 }
